@@ -3,8 +3,6 @@
 [![GitHub Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-GKE%20Allow%20Runner-blue?logo=github)](https://github.com/marketplace/actions/gke-allow-runner)
 [![Container](https://img.shields.io/badge/Image-ghcr.io%2F1xor3us%2Fgke--allow--runner--action-blue)](https://github.com/1xor3us/gke-allow-runner-action/pkgs/container/gke-allow-runner-action)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-[![Build](https://img.shields.io/github/actions/workflow/status/1xor3us/gke-allow-runner-action/release.yml?label=Build)](https://github.com/1xor3us/gke-allow-runner-action/actions)
-[![Version](https://img.shields.io/github/v/release/1xor3us/gke-allow-runner-action?logo=github)](https://github.com/1xor3us/gke-allow-runner-action/releases)
 
 ---
 
