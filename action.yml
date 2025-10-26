@@ -1,0 +1,34 @@
+name: "GKE Allow Runner Action"
+description: "Add or remove the current GitHub runner IP from GKE master authorized networks"
+author: "sysdown"
+branding:
+  icon: "lock"
+  color: "blue"
+
+inputs:
+  cluster_name:
+    description: "Nom du cluster GKE"
+    required: true
+  region:
+    description: "Région GCP"
+    required: true
+  project_id:
+    description: "ID du projet GCP"
+    required: true
+  action:
+    description: "Action à effectuer (allow|cleanup)"
+    required: true
+    default: "allow"
+  credentials_json:
+    description: "Clé JSON du service account GCP (via secret)"
+    required: true
+
+runs:
+  using: "docker"
+  image: "docker://ghcr.io/1xor3us/gke-allow-runner-action:v1.0.0"
+  env:
+    INPUT_CLUSTER_NAME: ${{ inputs.cluster_name }}
+    INPUT_REGION: ${{ inputs.region }}
+    INPUT_PROJECT_ID: ${{ inputs.project_id }}
+    INPUT_ACTION: ${{ inputs.action }}
+    INPUT_CREDENTIALS_JSON: ${{ inputs.credentials_json }}
