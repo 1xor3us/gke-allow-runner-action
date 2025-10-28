@@ -1,9 +1,10 @@
 ﻿# 🔐 GKE Allow Runner Action
 
-[![GitHub Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-GKE%20Allow%20Runner-blue?logo=github)](https://github.com/marketplace/actions/gke-allow-runner)
+[![GitHub Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-GKE%20Allow%20Runner-blue?logo=github)](https://github.com/marketplace/actions/gke-allow-runner-action)
 [![Container](https://img.shields.io/badge/Image-ghcr.io%2F1xor3us%2Fgke--allow--runner--action-blue)](https://github.com/1xor3us/gke-allow-runner-action/pkgs/container/gke-allow-runner-action)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-☕-blue?logo=kofi&logoColor=white)](https://ko-fi.com/1xor3us)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-💛-yellow?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/1xor3us)
 ---
 
 **GKE Allow Runner** automatically adds or removes the current GitHub Actions runner IP  to your Google Kubernetes Engine (GKE) master authorized networks.
