@@ -1,0 +1,84 @@
+name: Build, Push & Sign Docker Image (OIDC)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write        # nécessaire pour OIDC
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build Docker image
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action:${{ github.ref_name }}
+          echo "Building $IMAGE"
+          docker build -t $IMAGE .
+
+      - name: Push Docker image
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action:${{ github.ref_name }}
+          docker push $IMAGE
+
+      - name: Extract image digest
+        id: digest
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action:${{ github.ref_name }}
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "Image digest: $DIGEST"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.0.0
+
+      - name: Sign Docker image via OIDC
+        run: |
+          echo "🔏 Signing image ${{ steps.digest.outputs.digest }}"
+          cosign sign --yes ${{ steps.digest.outputs.digest }}
+      
+      - name: Update version and digest in README/action.yml
+        run: |
+          TAG="${{ github.ref_name }}"
+          DIGEST="${{ steps.digest.outputs.digest }}"
+          
+          echo "Updating version tag and digest to $TAG / $DIGEST"
+
+          # Met à jour les versions dans action.yml
+          sed -i -E "s|(ghcr\.io/.*/gke-allow-runner-action:)(v[0-9]+\.[0-9]+\.[0-9]+)|\1${TAG}|g" action.yml
+
+          # Met à jour toutes les références dans README.md
+          sed -i -E "s|(gke-allow-runner-action[@:])v[0-9]+\.[0-9]+\.[0-9]+|\1${TAG}|g" README.md
+          sed -i "s|\\*\\*Version:\\*\\* v[0-9.]*|**Version:** ${TAG}|g" README.md
+
+          # Met à jour le hash de signature (section Sigstore)
+          sed -i -E "s|sha256:[a-f0-9]{64}|${DIGEST#*@}|g" README.md
+
+          echo "✅ README and action.yml updated with version $TAG and digest $DIGEST"
+
+
+      - name: Commit and push updated files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update tag & digest for ${{ github.ref_name }}"
+          branch: main
+      
+      - name: Verify signature
+        run: |
+          echo "🔍 Verifying image signature..."
+          cosign verify ${{ steps.digest.outputs.digest }} \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
