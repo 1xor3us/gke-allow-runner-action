@@ -409,6 +409,7 @@ uses: 1xor3us/gke-allow-runner-action@v1.0.2
 
 - [x] Add and remove runner IP dynamically  
 - [x] Full GKE API-only implementation (no gcloud dependency)  
+- [x] Add Cosign signature and SLSA Provencance v1 Attestation
 - [ ] Retry mechanism when concurrent operations occur  
 - [ ] Support multiple clusters in parallel  
 - [ ] Advanced error handling and structured logging  
