@@ -1,4 +1,4 @@
-name: Build, Push & Sign Docker Image (OIDC)
+name: Build, Push & Sign Docker Image (OIDC + SLSA)
 
 on:
   push:
@@ -6,79 +6,142 @@ on:
       - "v*"
 
 permissions:
-  id-token: write        # nécessaire pour OIDC
+  id-token: write
   contents: write
   packages: write
 
 jobs:
+  # ───────────────────────────────────────────────
+  # Job 1 : Build, push et signature
+  # ───────────────────────────────────────────────
   release:
     runs-on: ubuntu-latest
+    outputs:
+      image_repo: ${{ steps.build.outputs.repo }}
+      digest: ${{ steps.digest.outputs.digest }}
+      image_digest_ref: ${{ steps.digest.outputs.image_digest_ref }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Define image name
+        id: build
+        run: |
+          REPO="ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action"
+          TAG="${{ github.ref_name }}"
+          IMAGE="$REPO:$TAG"
+          echo "repo=$REPO" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "Building image $IMAGE"
+          docker build -t $IMAGE .
 
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build Docker image
-        run: |
-          IMAGE=ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action:${{ github.ref_name }}
-          echo "Building $IMAGE"
-          docker build -t $IMAGE .
-
       - name: Push Docker image
         run: |
-          IMAGE=ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action:${{ github.ref_name }}
+          IMAGE=${{ steps.build.outputs.image }}
+          echo "📦 Pushing $IMAGE"
           docker push $IMAGE
 
       - name: Extract image digest
         id: digest
         run: |
-          IMAGE=ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action:${{ github.ref_name }}
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE)
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "Image digest: $DIGEST"
+          IMAGE=${{ steps.build.outputs.image }}
+          FULL_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE)
+          DIGEST_ONLY=${FULL_DIGEST#*@}   # ex: sha256:xxxx
+          echo "digest=$DIGEST_ONLY" >> $GITHUB_OUTPUT
+          echo "image_digest_ref=$FULL_DIGEST" >> $GITHUB_OUTPUT
+          echo "✅ Digest = $DIGEST_ONLY"
+          echo "✅ Full ref = $FULL_DIGEST"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v4.0.0
 
       - name: Sign Docker image via OIDC
         run: |
-          echo "🔏 Signing image ${{ steps.digest.outputs.digest }}"
-          cosign sign --yes ${{ steps.digest.outputs.digest }}
-      
+          cosign sign --yes ${{ steps.digest.outputs.image_digest_ref }}
+
+  # ───────────────────────────────────────────────
+  # Job 2 : Génération de la provenance SLSA
+  # ───────────────────────────────────────────────
+  provenance-container:
+    needs: release
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+      packages: write
+
+    uses: 1xor3us/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@main
+    with:
+      image: "${{ needs.release.outputs.image_repo }}"
+      digest: "${{ needs.release.outputs.digest }}"
+      registry-username: "${{ github.actor }}"
+      private-repository: true
+      compile-generator: true
+    secrets:
+      registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  # ───────────────────────────────────────────────
+  # Job 3 : Vérification et publication GHCR
+  # ───────────────────────────────────────────────
+  verify:
+    needs: [release, provenance-container]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.0.0
+
+      - name: Verify provenance (Sigstore bundle / SLSA v1)
+        run: |
+          IMAGE="ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action@${{ needs.release.outputs.digest }}"
+          echo "🔍 Verifying SLSA v1 provenance for $IMAGE"
+
+          # Vérifie l’attestation bundle format (OCI Referrers)
+          cosign verify-attestation \
+            --type slsaprovenance1 \
+            --certificate-identity-regexp '.*' \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$IMAGE"
+
+          echo "✅ Provenance verification passed!"
+
+      - name: Verify image signature
+        run: |
+          IMAGE="ghcr.io/${{ github.repository_owner }}/gke-allow-runner-action@${{ needs.release.outputs.digest }}"
+          echo "🔍 Verifying image signature..."
+
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$IMAGE"
+
+          echo "✅ Signature verification passed!"
+
+
+      - name: Checkout repo for update
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Update version and digest in README/action.yml
         run: |
           TAG="${{ github.ref_name }}"
-          DIGEST="${{ steps.digest.outputs.digest }}"
-          
+          DIGEST="${{ needs.release.outputs.digest }}"
+
           echo "Updating version tag and digest to $TAG / $DIGEST"
-
-          # Met à jour les versions dans action.yml
           sed -i -E "s|(ghcr\.io/.*/gke-allow-runner-action:)(v[0-9]+\.[0-9]+\.[0-9]+)|\1${TAG}|g" action.yml
-
-          # Met à jour toutes les références dans README.md
           sed -i -E "s|(gke-allow-runner-action[@:])v[0-9]+\.[0-9]+\.[0-9]+|\1${TAG}|g" README.md
           sed -i "s|\\*\\*Version:\\*\\* v[0-9.]*|**Version:** ${TAG}|g" README.md
-
-          # Met à jour le hash de signature (section Sigstore)
           sed -i -E "s|sha256:[a-f0-9]{64}|${DIGEST#*@}|g" README.md
-
-          echo "✅ README and action.yml updated with version $TAG and digest $DIGEST"
-
+          echo "README and action.yml updated."
 
       - name: Commit and push updated files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update tag & digest for ${{ github.ref_name }}"
           branch: main
-      
-      - name: Verify signature
-        run: |
-          echo "🔍 Verifying image signature..."
-          cosign verify ${{ steps.digest.outputs.digest }} \
-            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.*" \
-            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"

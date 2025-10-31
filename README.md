@@ -270,6 +270,47 @@ cosign verify ghcr.io/1xor3us/gke-allow-runner-action:v1.0.2 \
 
 ---
 
+## 🧾 Verify SLSA Provenance (SLSA v1)
+
+Every published image also includes a SLSA v1 provenance attestation, generated automatically by the [SLSA GIthub Generator](https://github.com/slsa-framework/slsa-github-generator) and signed with GitHub OIDC via [Sigstore Cosign V4](https://github.com/sigstore/cosign)
+
+You can verify this provenance directly from GHCR using:
+```bash
+cosign verify-attestation \
+  --type slsaprovenance1 \
+  --certificate-identity-regexp ".*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  ghcr.io/1xor3us/gke-allow-runner-action:v1.1.1
+```
+
+This confirms that the image:
+- **was built from this repository** and **signed by GitHub Actions** (OIDC identity),  
+- includes a **SLSA v1 provenance predicate**,  
+- and is **logged in the Sigstore transparency log** for immutable traceability.  
+  💡 To export the provenance for inspection:
+  ```bash
+  cosign verify-attestation --type slsaprovenance1 ghcr.io/1xor3us/gke-allow-runner-action:v1.1.1 \
+  --certificate-identity-regexp ".*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  --output-file provenance.json
+  ```
+
+---
+
+## 🧩 What is SLSA Provenance?
+
+SLSA (Supply-chain Levels for Software Artifacts) defines how to trace and verify how software was built.
+The provenance includes:
+
+- The exact commit and workflow that built the image  
+- All inputs and dependencies used during the build 
+- The builder identity (`GitHub Actions OIDC`)  
+- Build timestamps and metadata 
+
+Together with Sigstore signatures, this makes the action fully transparent and tamper-proof from source to artifact.
+
+---
+
 ## 🧠 How This Proves Integrity
 
 When you use a GitHub Action that runs inside a Docker image, you’re essentially trusting that image to do exactly what it says.    
