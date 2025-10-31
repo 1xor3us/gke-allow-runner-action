@@ -25,7 +25,7 @@ inputs:
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/1xor3us/gke-allow-runner-action:v1.0.2"
+  image: "docker://ghcr.io/1xor3us/gke-allow-runner-action:v1.1.0"
   env:
     INPUT_CLUSTER_NAME: ${{ inputs.cluster_name }}
     INPUT_REGION: ${{ inputs.region }}
