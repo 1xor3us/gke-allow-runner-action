@@ -14,7 +14,7 @@
 
 > ⚡ Lightweight, statically compiled and distroless — designed for secure CI/CD environments.
 
-> **Version:** v1.5.2 • **Signed via OIDC** • [Verify on Sigstore](https://search.sigstore.dev/?hash=sha256:5e3ab0ec79f6491e772146076d859db68b953b6d56f301c27842f63d2c7ef355)
+> **Version:** v1.7.0 • **Signed via OIDC** • [Verify on Sigstore](https://search.sigstore.dev/?hash=sha256:6a0524531a3a860123d0ec6e9690d4fab7e10267d32c96181825a502329852f7)
 ---
 
 ## 🚀 Example Usage
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Allow GitHub runner IPs on multiple GKE clusters
-        uses: 1xor3us/gke-allow-runner-action@v1.6.0
+        uses: 1xor3us/gke-allow-runner-action@v1.7.0
         with:
           clusters: |
             europe-west1/cluster-test
@@ -44,7 +44,7 @@ jobs:
       # 🧹 Always cleanup after
       - name: Cleanup GitHub runner IPs
         if: always()
-        uses: 1xor3us/gke-allow-runner-action@v1.6.0
+        uses: 1xor3us/gke-allow-runner-action@v1.7.0
         with:
           clusters: |
             europe-west1/cluster-test
@@ -209,7 +209,7 @@ docker build -t gke-allow-runner-action .
 Before comparison, download the signed public image from GHCR:
 
 ```bash
-docker pull ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2
+docker pull ghcr.io/1xor3us/gke-allow-runner-action:v1.7.0
 ```
 
 ---
@@ -225,7 +225,7 @@ docker export $(docker create gke-allow-runner-action) | tar -xO main > main_loc
 
 for remote build :
 ```bash
-docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2) | tar -xO main > main_remote
+docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.7.0) | tar -xO main > main_remote
 ```
 
 #### 🐧 On Linux/macOS
@@ -235,7 +235,7 @@ docker export $(docker create gke-allow-runner-action) | tar -xO --wildcards ./m
 ```
 for remote build :
 ```bash
-docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2) | tar -xO --wildcards ./main > main_remote
+docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.7.0) | tar -xO --wildcards ./main > main_remote
 ```
 
 ---
@@ -262,7 +262,7 @@ the executable inside the published GHCR image is **exactly the same** as the on
 You can quickly verify the authenticity of the published image without rebuilding it:
 
 ```bash
-cosign verify ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2 \
+cosign verify ghcr.io/1xor3us/gke-allow-runner-action:v1.7.0 \
   --certificate-identity-regexp "https://github.com/1xor3us/gke-allow-runner-action/.*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 
@@ -285,7 +285,7 @@ cosign verify-attestation \
   --type slsaprovenance1 \
   --certificate-identity-regexp ".*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  ghcr.io/1xor3us/gke-allow-runner-action:v1.1.1
+  ghcr.io/1xor3us/gke-allow-runner-action:v1.7.0
 ```
 
 This confirms that the image:
@@ -294,7 +294,7 @@ This confirms that the image:
 - and is **logged in the Sigstore transparency log** for immutable traceability.  
   💡 To export the provenance for inspection:
   ```bash
-  cosign verify-attestation --type slsaprovenance1 ghcr.io/1xor3us/gke-allow-runner-action:v1.1.1 \
+  cosign verify-attestation --type slsaprovenance1 ghcr.io/1xor3us/gke-allow-runner-action:v1.7.0 \
   --certificate-identity-regexp ".*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   --output-file provenance.json
@@ -391,7 +391,7 @@ chmod +x run_local.sh
 These local scripts are mainly for debugging or verifying functionality outside of GitHub Actions.  
 For CI/CD workflows, prefer using the Action directly with:
 ```yaml
-uses: 1xor3us/gke-allow-runner-action@v1.5.2
+uses: 1xor3us/gke-allow-runner-action@v1.7.0
 ```
 
 ---
