@@ -2,6 +2,7 @@
 
 [![GitHub Marketplace](https://img.shields.io/badge/GitHub%20Marketplace-GKE%20Allow%20Runner-blue?logo=github)](https://github.com/marketplace/actions/gke-allow-runner-action)
 [![Container](https://img.shields.io/badge/Image-ghcr.io%2F1xor3us%2Fgke--allow--runner--action-blue)](https://github.com/1xor3us/gke-allow-runner-action/pkgs/container/gke-allow-runner-action)
+[![Feature: Parallel Multi-Cluster](https://img.shields.io/badge/Feature-Multi--Cluster%20Parallel-yellowgreen?logo=googlecloud)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-☕-blue?logo=kofi&logoColor=white)](https://ko-fi.com/1xor3us)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-💛-yellow?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/1xor3us)
@@ -13,13 +14,13 @@
 
 > ⚡ Lightweight, statically compiled and distroless — designed for secure CI/CD environments.
 
-> **Version:** v1.1.0 • **Signed via OIDC** • [Verify on Sigstore](https://search.sigstore.dev/?hash=sha256:37ab16b9cd3217a61a3667eb610923301d1158acbccc13b14c646b3491b65838)
+> **Version:** v1.5.2 • **Signed via OIDC** • [Verify on Sigstore](https://search.sigstore.dev/?hash=sha256:5e3ab0ec79f6491e772146076d859db68b953b6d56f301c27842f63d2c7ef355)
 ---
 
 ## 🚀 Example Usage
 
 ```yaml
-name: Manage GKE Runner IP
+name: Manage GKE Runner IPs
 on:
   workflow_dispatch:
 
@@ -29,40 +30,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Allow GitHub runner IP on GKE
-        uses: 1xor3us/gke-allow-runner-action@v1.1.0
+      - name: Allow GitHub runner IPs on multiple GKE clusters
+        uses: 1xor3us/gke-allow-runner-action@v1.6.0
         with:
-          cluster_name: cluster01
-          region: europe-west1
-          project_id: reliable-plasma-476112-q3
+          clusters: |
+            europe-west1/cluster-test
+            us-central1/cluster-prod
+            asia-southeast1/cluster-staging
+          project_id: my-gcp-project
           action: allow
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-     
-     # do what you have to do ...
-     # ALWAYS CLEAN UP IN THE END OF THE WORKFLOWS
 
-      - name: Cleanup GitHub runner IP
+      # 🧹 Always cleanup after
+      - name: Cleanup GitHub runner IPs
         if: always()
-        uses: 1xor3us/gke-allow-runner-action@v1.1.0
+        uses: 1xor3us/gke-allow-runner-action@v1.6.0
         with:
-          cluster_name: cluster01
-          region: europe-west1
-          project_id: reliable-plasma-476112-q3
+          clusters: |
+            europe-west1/cluster-test
+            us-central1/cluster-prod
+            asia-southeast1/cluster-staging
+          project_id: my-gcp-project
           action: cleanup
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
 ```
+> 🧠 Now supports multiple clusters processed in parallel with automatic retries and rich structured logging.
 
 ---
 
 ## 🧩 Inputs
 
-| Name               | Description                                  | Required             | Example                          |
-| ------------------ | -------------------------------------------- | -------------------- | -------------------------------- |
-| `cluster_name`     | Target GKE cluster name                      | ✅                    | `cluster-test`                   |
-| `region`           | GCP region                                   | ✅                    | `europe-west1`                   |
-| `project_id`       | GCP project ID                               | ✅                    | `my-gcp-project`                 |
-| `action`           | Action to perform (`allow` or `cleanup`)     | ❌ (default: `allow`) | `cleanup`                        |
-| `credentials_json` | GCP Service Account JSON (via GitHub Secret) | ✅                    | `${{ secrets.GCP_CREDENTIALS }}` |
+| Name               | Description                                                | Required             | Example                                                          |
+| ------------------ | ---------------------------------------------------------- | -------------------- | ----------------------------------------------------------------  |
+| `clusters`         | Multi-line list of clusters (`region/cluster-name` format) | ✅                    | `"europe-west1/cluster-test`<br>`us-central1/cluster-prod"`        |
+| `project_id`       | GCP Project ID                                             | ✅                    | `my-gcp-project`                                                 |
+| `action`           | Action to perform (`allow` or `cleanup`)                   | ❌ (default: `allow`) | `cleanup`                                                        |
+| `credentials_json` | GCP Service Account JSON (via GitHub Secret)               | ✅                    | `${{ secrets.GCP_CREDENTIALS }}`                                 |
+
 
 ---
 
@@ -204,7 +209,7 @@ docker build -t gke-allow-runner-action .
 Before comparison, download the signed public image from GHCR:
 
 ```bash
-docker pull ghcr.io/1xor3us/gke-allow-runner-action:v1.1.0
+docker pull ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2
 ```
 
 ---
@@ -220,7 +225,7 @@ docker export $(docker create gke-allow-runner-action) | tar -xO main > main_loc
 
 for remote build :
 ```bash
-docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.1.0) | tar -xO main > main_remote
+docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2) | tar -xO main > main_remote
 ```
 
 #### 🐧 On Linux/macOS
@@ -230,7 +235,7 @@ docker export $(docker create gke-allow-runner-action) | tar -xO --wildcards ./m
 ```
 for remote build :
 ```bash
-docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.1.0) | tar -xO --wildcards ./main > main_remote
+docker export $(docker create ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2) | tar -xO --wildcards ./main > main_remote
 ```
 
 ---
@@ -257,7 +262,7 @@ the executable inside the published GHCR image is **exactly the same** as the on
 You can quickly verify the authenticity of the published image without rebuilding it:
 
 ```bash
-cosign verify ghcr.io/1xor3us/gke-allow-runner-action:v1.1.0 \
+cosign verify ghcr.io/1xor3us/gke-allow-runner-action:v1.5.2 \
   --certificate-identity-regexp "https://github.com/1xor3us/gke-allow-runner-action/.*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 
@@ -280,7 +285,7 @@ cosign verify-attestation \
   --type slsaprovenance1 \
   --certificate-identity-regexp ".*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-  ghcr.io/1xor3us/gke-allow-runner-action:v1.1.0
+  ghcr.io/1xor3us/gke-allow-runner-action:v1.1.1
 ```
 
 This confirms that the image:
@@ -289,7 +294,7 @@ This confirms that the image:
 - and is **logged in the Sigstore transparency log** for immutable traceability.  
   💡 To export the provenance for inspection:
   ```bash
-  cosign verify-attestation --type slsaprovenance1 ghcr.io/1xor3us/gke-allow-runner-action:v1.1.0 \
+  cosign verify-attestation --type slsaprovenance1 ghcr.io/1xor3us/gke-allow-runner-action:v1.1.1 \
   --certificate-identity-regexp ".*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   --output-file provenance.json
@@ -346,28 +351,27 @@ You can also run the same container locally to test it.
 
 Before running the scripts, edit the following variables according to your environment:
 
-| Variable | Description | Example |
-|-----------|--------------|----------|
-| `PROJECT_ID` | Your GCP project ID | `reliable-plasma-476112-q3` |
-| `REGION` | GCP region where your cluster is hosted | `europe-west1` |
-| `CLUSTER_NAME` | Name of your GKE cluster | `cluster-test` |
-| `SA_KEY_PATH` | Path to your downloaded Service Account JSON key | `./ci-runner-access.json` |
-| `IMAGE_NAME` | Docker image name (with tag) | `gke-allow-runner-action:latest` |
-| `ACTION` | Operation mode (`allow` or `cleanup`) | `allow` |
+| Variable      | Description                           | Example                                                     |
+| ------------- | ------------------------------------- | ----------------------------------------------------------- |
+| `PROJECT_ID`  | Your GCP project ID                   | `my-gcp-project`                                            |
+| `CLUSTERS`    | Multi-line cluster list (region/name) | `"europe-west1/cluster-test`<br>`us-central1/cluster-prod"` |
+| `SA_KEY_PATH` | Path to the Service Account JSON key  | `./gcp-sa.json`                                             |
+| `IMAGE_NAME`  | Docker image name                     | `gke-allow-runner-action:latest`                            |
+| `ACTION`      | Operation (`allow` or `cleanup`)      | `allow`                                                     |
 
 
-### 🪟 Windows usage
+### 🪟 Windows (PowerShell)
 
-1️⃣ Edit the `.bat` file to match your configuration.  
-2️⃣ Run it by double-clicking or in PowerShell:
+1️⃣ Edit the `run_local.ps1` file to match your configuration.  
+2️⃣ Run it in PowerShell:
 
 ```bash
-run_local.bat
+.\run_local.ps1
 ```
 
-### Linux / macOS usage
+### 🐧 Linux / macOS
 
-1️⃣ Edit the .sh file with your configuration.    
+1️⃣ Edit the `run_local.sh` file to match your configuration.   
 2️⃣ Make it executable and run it:
 
 ```bash
@@ -387,7 +391,7 @@ chmod +x run_local.sh
 These local scripts are mainly for debugging or verifying functionality outside of GitHub Actions.  
 For CI/CD workflows, prefer using the Action directly with:
 ```yaml
-uses: 1xor3us/gke-allow-runner-action@v1.1.0
+uses: 1xor3us/gke-allow-runner-action@v1.5.2
 ```
 
 ---
@@ -407,21 +411,30 @@ uses: 1xor3us/gke-allow-runner-action@v1.1.0
 
 ## 🧭 Roadmap
 
-- [x] Add and remove runner IP dynamically  
-- [x] Full GKE API-only implementation (no gcloud dependency)  
-- [x] Add Cosign signature and SLSA Provencance v1 Attestation
-- [ ] Retry mechanism when concurrent operations occur  
-- [ ] Support multiple clusters in parallel  
-- [ ] Advanced error handling and structured logging  
-- [ ] Automatic tag bump & release workflow integration  
+- ✅ Add and remove runner IP dynamically  
+- ✅ Full GKE API-only implementation (no gcloud dependency)  
+- ✅ Retry mechanism when concurrent operations occur  
+- ✅ Support multiple clusters in parallel  
+- ✅ Advanced error handling and structured logging  
+- ✅ Automatic tag bump & release workflow integration  
 
-## 🌍 Planned Multi-Provider Support
+## 🌍 Planned Multi-Provider Support (Next Step)
 
 | Provider | Status | Notes |
 |-----------|---------|-------|
 | **GKE (Google Cloud)** | ✅ Implemented | Uses native GKE API |
 | **EKS (Amazon Web Services)** | 🚧 Planned | Will use AWS Go SDK v2 |
 | **AKS (Microsoft Azure)** | 🚧 Planned | Will use Azure SDK for Go |
+
+---
+
+## 🧩 Latest Release — v1.6.0
+
+- Parallel multi-cluster updates (3 concurrent workers)
+- Automatic retry with exponential backoff
+- Structured colorized logging
+- PowerShell local test support
+- Enhanced error handling and graceful failure mode
 
 Stay tuned for updates on [GitHub Releases](https://github.com/1xor3us/gke-allow-runner-action/releases).
 

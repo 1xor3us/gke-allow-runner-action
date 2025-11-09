@@ -1,37 +1,39 @@
-#!/usr/bin/env bash
-set -euo pipefail
+# GKE-Allow.ps1
 
 # ──────────────────────────────────────────────
-# CONFIGURATION - ADAPT TO YOUR ENVIRONMENT
+# ADAPT FOR YOUR ENVIRONNMENT
 # ──────────────────────────────────────────────
-PROJECT_ID="reliable-plasma-476112-q3"
-SA_KEY_PATH="$(pwd)/ci-runner-access.json"
-IMAGE_NAME="ghcr.io/1xor3us/gke-allow-runner-action:v1.0.0"
-ACTION="allow"
+$env:PROJECT_ID = "reliable-plasma-476112-q3"
+$env:SA_KEY_PATH = "$(Get-Location)\ci-runner-access.json"
+$env:IMAGE_NAME = "gke-allow-runner-action"
+$env:ACTION = "cleanup"
 
 # CLUSTERS
-read -r -d '' INPUT_CLUSTERS <<'EOF'
+$env:INPUT_CLUSTERS = @"
 europe-west1/cluster-test
 europe-west1/cluster-test-eu
 us-central1/cluster-test-us
-EOF
+"@
 # ──────────────────────────────────────────────
 
 # ──────────────────────────────────────────────
-# MAIN
+# MAIN (DONT TOUCH)
 # ──────────────────────────────────────────────
-echo
-echo "GKE Allow GitHub Runner - Mode: $ACTION"
-echo
+Write-Host ""
+Write-Host "GKE Allow GitHub Runner - Mode: $env:ACTION"
+Write-Host ""
 
-docker run --rm \
-  -v "$SA_KEY_PATH:/tmp/sa.json" \
-  -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json \
-  -e INPUT_CLUSTERS="$INPUT_CLUSTERS" \
-  -e INPUT_PROJECT_ID="$PROJECT_ID" \
-  -e INPUT_ACTION="$ACTION" \
-  "$IMAGE_NAME"
+Write-Host "📋 Clusters configured:"
+$env:INPUT_CLUSTERS -split "`n" | ForEach-Object { Write-Host "  - $_" }
 
-echo
-echo "Script finished."
-# ──────────────────────────────────────────────
+docker run --rm `
+  -v "$($env:SA_KEY_PATH):/tmp/sa.json" `
+  -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json `
+  -e INPUT_CLUSTERS="$($env:INPUT_CLUSTERS)" `
+  -e INPUT_PROJECT_ID="$env:PROJECT_ID" `
+  -e INPUT_ACTION="$env:ACTION" `
+  $env:IMAGE_NAME
+
+Write-Host ""
+Write-Host "Script finished."
+Pause
