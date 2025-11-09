@@ -428,7 +428,7 @@ uses: 1xor3us/gke-allow-runner-action@v1.7.0
 
 ---
 
-## 🧩 Latest Release — v1.6.0
+## 🧩 Latest Release — v1.7.0
 
 - Parallel multi-cluster updates (3 concurrent workers)
 - Automatic retry with exponential backoff
